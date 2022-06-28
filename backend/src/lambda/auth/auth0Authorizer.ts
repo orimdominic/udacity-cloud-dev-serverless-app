@@ -12,7 +12,7 @@ const logger = createLogger('auth')
 // to verify JWT token signature.
 // To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
 const jwksUrl =  process.env.AUTH_0_JWKS_URL
-let cachedCert;
+let cachedCert: string;
 
 export const handler = async (
   event: CustomAuthorizerEvent
