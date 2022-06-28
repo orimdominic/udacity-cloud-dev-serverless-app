@@ -1,10 +1,52 @@
-import { TodosAccess } from './todosAcess'
-import { AttachmentUtils } from './attachmentUtils';
+import { v4 as generateUniqueId } from 'uuid'
+
 import { TodoItem } from '../models/TodoItem'
+import { TodoAccess } from './todosAcess'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
-import { createLogger } from '../utils/logger'
-import * as uuid from 'uuid'
-import * as createError from 'http-errors'
+// TODO-DONE: Implement businessLogic
 
-// TODO: Implement businessLogic
+const todoAccess = new TodoAccess()
+
+export async function getTodosForUser(userId: string): Promise<TodoItem[]> {
+
+  return await todoAccess.getAllTodos(userId)
+}
+
+export async function createTodoItem(
+  userId: string,
+  todo: CreateTodoRequest,
+): Promise<TodoItem> {
+
+  return await todoAccess.createTodoItem({
+    userId,
+    todoId: generateUniqueId(),
+    done: false,
+    createdAt: new Date().toISOString(),
+    ...todo
+  })
+}
+
+export async function createAttachmentPresignedUrl(userId: string, todoId: string): Promise<string> {
+  const uploadUrl = await todoAccess.getSignedUrl(todoId)
+  await todoAccess.updateAttachmentUrl(userId, todoId)
+
+  return uploadUrl
+}
+
+export async function updateTodoItem(
+  userId: string,
+  todoId: string,
+  todo: UpdateTodoRequest,
+): Promise<void> {
+
+  await todoAccess.updateTodoItem(todo, userId, todoId)
+}
+
+export async function deleteTodoItem(userId: string, todoId: string) {
+
+  await Promise.all([
+    todoAccess.deleteTodoItem(userId, todoId),
+    todoAccess.deleteTodoItemAttachment(todoId)
+  ])
+}
