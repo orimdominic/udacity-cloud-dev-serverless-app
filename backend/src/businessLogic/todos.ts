@@ -13,8 +13,8 @@ export async function getTodosForUser(userId: string): Promise<TodoItem[]> {
 }
 
 export async function createTodoItem(
+  userId: string,
   todo: CreateTodoRequest,
-  userId: string
 ): Promise<TodoItem> {
 
   return await todoAccess.createTodoItem({
