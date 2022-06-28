@@ -26,7 +26,7 @@ export async function createTodoItem(
   })
 }
 
-export async function generateUploadUrl(userId: string, todoId: string): Promise<string> {
+export async function createAttachmentPresignedUrl(userId: string, todoId: string): Promise<string> {
   const uploadUrl = await todoAccess.getSignedUrl(todoId)
   await todoAccess.updateAttachmentUrl(userId, todoId)
 
