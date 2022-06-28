@@ -34,9 +34,9 @@ export async function generateUploadUrl(userId: string, todoId: string): Promise
 }
 
 export async function updateTodoItem(
-  todo: UpdateTodoRequest,
   userId: string,
-  todoId: string
+  todoId: string,
+  todo: UpdateTodoRequest,
 ): Promise<void> {
 
   await todoAccess.updateTodoItem(todo, userId, todoId)
