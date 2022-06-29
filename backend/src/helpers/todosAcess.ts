@@ -1,15 +1,14 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-// import { createLogger } from '../utils/logger'
+import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
 import { TodoUpdate } from '../models/TodoUpdate';
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
-// const logger = createLogger('TodosAccess')
+const logger = createLogger('TodosAccess')
 
-// TODO: Implement the dataLayer logic
 
 export class TodoAccess {
 
@@ -22,6 +21,8 @@ export class TodoAccess {
 ) {}
 
   async createTodoItem(todoItem: TodoItem): Promise<TodoItem> {
+    logger.info('creating todo item', {todoItem})
+
     await this.docClient.put({
       TableName: this.todosTable,
       Item: {
@@ -29,10 +30,13 @@ export class TodoAccess {
       }
     }).promise()
 
+    logger.info('created todo item', {todoItem})
     return todoItem
   }
 
   async getAllTodos(userId: string): Promise<TodoItem[]> {
+    logger.info('getting todo items for user', {userId})
+
     const result = await this.docClient.query({
       TableName: this.todosTable,
       KeyConditionExpression: 'userId = :userId',
@@ -45,6 +49,8 @@ export class TodoAccess {
   }
 
   async getSignedUrl(bucketKey: string): Promise<string> {
+    logger.info('getting signed url')
+
     return this.s3.getSignedUrl('putObject', {
       Bucket: this.bucketName,
       Key: bucketKey,
@@ -53,6 +59,8 @@ export class TodoAccess {
   }
 
   async updateAttachmentUrl(userId: string, todoId: string): Promise<void> {
+    logger.info('updating attachmentUrl')
+
     await this.docClient.update({
       TableName: this.todosTable,
       Key: {
@@ -67,6 +75,8 @@ export class TodoAccess {
   }
 
   async updateTodoItem(updateTodoRequest: TodoUpdate, userId: string, todoId: string): Promise<void> {
+    logger.info('updating todoItem for user', {userId, todoId})
+
     await this.docClient.update({
       TableName: this.todosTable,
       Key: {
@@ -83,9 +93,13 @@ export class TodoAccess {
         "#name": "name"
       }
     }).promise()
+
+    logger.info('updated todoItem for user', {userId, todoId})
   }
 
   async deleteTodoItem(userId: string, todoId: string): Promise<void> {
+    logger.info('deleting todoItem for user', {userId, todoId})
+
     await this.docClient.delete({
       TableName: this.todosTable,
       Key: {
@@ -93,9 +107,13 @@ export class TodoAccess {
         "todoId": todoId
       }
     }).promise()
+
+    logger.info('deleted todoItem for user', {userId, todoId})
   }
 
   async deleteTodoItemAttachment(bucketKey: string): Promise<void> {
+    logger.info('deleteTodoItemAttachment')
+
     await this.s3.deleteObject({
       Bucket: this.bucketName,
       Key: bucketKey
