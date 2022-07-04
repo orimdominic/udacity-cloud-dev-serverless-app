@@ -11,8 +11,7 @@ const logger = createLogger('auth')
 // TODO-DONE: Provide a URL that can be used to download a certificate that can be used
 // to verify JWT token signature.
 // To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
-const jwksUrl = process.env.AUTH_0_JWKS_URL
-let cachedCert: string;
+const jwksUrl = 'https://dev-9yt1kpv9.us.auth0.com/.well-known/jwks.json'
 
 export const handler = async (
   event: CustomAuthorizerEvent
@@ -37,7 +36,7 @@ export const handler = async (
       }
     }
   } catch (e) {
-    logger.error('User not authorized', { error: e.message })
+    logger.error('User not authorized', { error: e.message, fullError: e })
 
     return {
       principalId: 'user',
@@ -56,39 +55,25 @@ export const handler = async (
 }
 
 async function getCertificate(): Promise<string> {
-  if (cachedCert) return cachedCert
+  // if (cachedCert) return cachedCert
   try {
     const getJwksResponse = await Axios.get(jwksUrl)
-    const jwks = getJwksResponse.data.keys
-    if (!jwks || !jwks.length) {
-      throw new Error('The JWKS endpoint did not contain any keys');
-    }
-    const signingKeys = jwks
-      .filter(key => key.use === 'sig' // JWK property `use` determines the JWK is for signature verification
-        && key.kty === 'RSA' // We are only supporting RSA (RS256)
-        && key.kid           // The `kid` must be present to be useful for later
-        && ((key.x5c && key.x5c.length) || (key.n && key.e)) // Has useful public keys
-      ).map(key => {
-        return { kid: key.kid, nbf: key.nbf, publicKey: certToPEM(key.x5c[0]) };
-      });
-    if (!signingKeys.length) {
-      throw new Error('The JWKS endpoint did not contain any signature verification keys');
-    }
-    cachedCert = signingKeys[0].publicKey
+    logger.info('retrieved cert keys from Auth0', {unparsedCert: getJwksResponse.data['keys'][0]['x5c'][0]})
+    const unparsedCert = getJwksResponse.data['keys'][0]['x5c'][0];
+    return certToPEM(unparsedCert)
   } catch (error) {
-
+    logger.error('Failed to parse certificate', error)
   }
 }
 
-function certToPEM(cert: string) {
-  cachedCert = cert.match(/.{1,64}/g).join('\n');
-  cachedCert = `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
-  return cachedCert;
+function certToPEM(unparsedCert: string) {
+  return `-----BEGIN CERTIFICATE-----\n${unparsedCert}\n-----END CERTIFICATE-----\n`;
 }
 
 async function verifyToken(authHeader: string): Promise<JwtPayload> {
   const token = getToken(authHeader)
   const cert = await getCertificate()
+  logger.info('attempting to verify cert from token:'+ token)
   return verify(token, cert, {
     algorithms: ["RS256"]
   }) as JwtPayload
